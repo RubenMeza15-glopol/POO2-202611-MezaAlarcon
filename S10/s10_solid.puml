@@ -1,0 +1,85 @@
+
+@startuml SOLID_S10_Completo
+
+title SOLID - Sistema Académico UNAP (S10)
+
+' =====================================================
+' INTERFAZ DE REPOSITORIO
+' Define las operaciones para almacenar estudiantes.
+' =====================================================
+    
+interface IRepositorioEstudiante {
+    + guardar(e: Estudiante): void
+    + buscar(codigo: int): Estudiante
+    + listar(): List<Estudiante>
+}
+
+' =====================================================
+' INTERFAZ DE ESTRATEGIA DE CÁLCULO
+' Define el contrato para calcular promedios.
+' =====================================================
+
+interface IEstrategiaCalculo {
+    + calcular(notas: List<float>): float
+}
+
+' =====================================================
+' CLASE ESTUDIANTE
+' Su responsabilidad es almacenar los datos.
+' =====================================================
+
+class Estudiante {
+    - codigo: int
+    - nombre: str
+    - ppa: float
+    - notas: List<float>
+}
+
+' =====================================================
+' SERVICIO ESTUDIANTE
+' Coordina el cálculo y el almacenamiento.
+' =====================================================
+
+class ServicioEstudiante {
+    - repo: IRepositorioEstudiante
+    - calc: IEstrategiaCalculo
+    + registrar(e: Estudiante): void
+    + buscar(cod: int): Estudiante
+}
+
+' =====================================================
+' IMPLEMENTACIONES DEL REPOSITORIO
+' Todas cumplen el contrato de la interfaz.
+' =====================================================
+
+class RepositorioMemoria
+class RepositorioJSON
+class RepositorioSQLite
+class RepositorioCSV
+
+' =====================================================
+' ESTRATEGIAS DE CÁLCULO
+' Permiten cambiar el algoritmo sin modificar
+' ServicioEstudiante.
+' =====================================================
+
+class PromedioSimple
+class PromedioModerado
+
+' =====================================================
+' RELACIONES ENTRE LAS CLASES
+' =====================================================
+
+RepositorioMemoria ..|> IRepositorioEstudiante
+RepositorioJSON ..|> IRepositorioEstudiante
+RepositorioSQLite ..|> IRepositorioEstudiante
+RepositorioCSV ..|> IRepositorioEstudiante
+
+PromedioSimple ..|> IEstrategiaCalculo
+PromedioModerado ..|> IEstrategiaCalculo
+
+ServicioEstudiante --> IRepositorioEstudiante : usa
+ServicioEstudiante --> IEstrategiaCalculo : usa
+ServicioEstudiante --> Estudiante : registra y busca
+
+@enduml
