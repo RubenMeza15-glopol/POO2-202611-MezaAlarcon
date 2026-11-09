@@ -1,0 +1,252 @@
+
+@startuml patrones_integrados
+
+' Permite combinar clases, interfaces y otros elementos UML.
+allowmixing
+
+title SISTEMA ACADEMICO UNAP\nINTEGRACION DE PATRONES CREACIONALES GoF
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+skinparam linetype ortho
+
+' =====================================================
+' 1. SINGLETON: LOGGER Y CONFIG
+' =====================================================
+
+package "1. SINGLETON" {
+
+    class Logger <<Singleton>> {
+        - instancia : Logger
+        - Logger()
+        + getInstancia() : Logger
+        + info(modulo, mensaje) : void
+        + warning(modulo, mensaje) : void
+        + error(modulo, mensaje) : void
+    }
+
+    class Config <<Singleton>> {
+        - instancia : Config
+        - Config()
+        - parametros : dict
+        + getInstancia() : Config
+        + cargarConfiguracion() : void
+        + obtener(clave) : string
+    }
+
+    artifact "archivo.env" as ArchivoEnv
+
+    Config ..> ArchivoEnv : lee parametros
+}
+
+' =====================================================
+' 2. FACTORY METHOD: REPOSITORIOS
+' =====================================================
+
+package "2. FACTORY METHOD" {
+
+    interface IRepositorio {
+        + guardar(datos) : void
+        + consultar() : list
+    }
+
+    class RepositorioMemoria {
+        + guardar(datos) : void
+        + consultar() : list
+    }
+
+    class RepositorioArchivo {
+        + guardar(datos) : void
+        + consultar() : list
+    }
+
+    class RepositorioBD {
+        + guardar(datos) : void
+        + consultar() : list
+    }
+
+    abstract class CreadorRepositorio {
+        + crearRepositorio() : IRepositorio
+    }
+
+    class CreadorMemoria {
+        + crearRepositorio() : IRepositorio
+    }
+
+    class CreadorArchivo {
+        + crearRepositorio() : IRepositorio
+    }
+
+    class CreadorBD {
+        + crearRepositorio() : IRepositorio
+    }
+
+    IRepositorio <|.. RepositorioMemoria
+    IRepositorio <|.. RepositorioArchivo
+    IRepositorio <|.. RepositorioBD
+
+    CreadorRepositorio <|-- CreadorMemoria
+    CreadorRepositorio <|-- CreadorArchivo
+    CreadorRepositorio <|-- CreadorBD
+
+    CreadorRepositorio ..> IRepositorio : crea
+}
+
+' =====================================================
+' 3. ABSTRACT FACTORY: INTERFACES GRAFICAS
+' =====================================================
+
+package "3. ABSTRACT FACTORY" {
+
+    interface UIFactory {
+        + crearVentana() : VentanaPrincipal
+        + crearMenu() : MenuNavegacion
+        + crearTabla() : TablaResultados
+    }
+
+    interface VentanaPrincipal {
+        + mostrar() : void
+    }
+
+    interface MenuNavegacion {
+        + mostrar() : void
+    }
+
+    interface TablaResultados {
+        + mostrar() : void
+    }
+
+    class UIFactoryTkinter
+    class UIFactoryPyQt5
+
+    class VentanaTkinter
+    class MenuTkinter
+    class TablaTkinter
+
+    class VentanaPyQt5
+    class MenuPyQt5
+    class TablaPyQt5
+
+    UIFactory <|.. UIFactoryTkinter
+    UIFactory <|.. UIFactoryPyQt5
+
+    VentanaPrincipal <|.. VentanaTkinter
+    MenuNavegacion <|.. MenuTkinter
+    TablaResultados <|.. TablaTkinter
+
+    VentanaPrincipal <|.. VentanaPyQt5
+    MenuNavegacion <|.. MenuPyQt5
+    TablaResultados <|.. TablaPyQt5
+
+    UIFactoryTkinter ..> VentanaTkinter : crea
+    UIFactoryTkinter ..> MenuTkinter : crea
+    UIFactoryTkinter ..> TablaTkinter : crea
+
+    UIFactoryPyQt5 ..> VentanaPyQt5 : crea
+    UIFactoryPyQt5 ..> MenuPyQt5 : crea
+    UIFactoryPyQt5 ..> TablaPyQt5 : crea
+}
+
+' =====================================================
+' 4. APLICACION PRINCIPAL
+' =====================================================
+
+package "APLICACION PRINCIPAL" {
+
+    class Main {
+        + main() : void
+        + iniciarSistema() : void
+        + mostrarInterfaz() : void
+    }
+
+    class ServicioAcademico {
+        - repositorio : IRepositorio
+        - interfaz : UIFactory
+        + iniciar() : void
+        + listarEstudiantes() : list
+    }
+
+    Main --> ServicioAcademico : inicia
+    ServicioAcademico --> IRepositorio : utiliza
+    ServicioAcademico --> UIFactory : utiliza
+}
+
+' =====================================================
+' 5. INTEGRACION CON SINGLETON
+' =====================================================
+
+Main --> Logger : registra eventos
+Main --> Config : obtiene configuracion
+
+ServicioAcademico --> Logger : registra operaciones
+ServicioAcademico --> Config : consulta parametros
+
+Config ..> CreadorRepositorio : selecciona fabrica
+
+' =====================================================
+' 6. PRUEBAS AUTOMATIZADAS
+' =====================================================
+
+package "PRUEBAS AUTOMATIZADAS" {
+
+    class TestSingleton {
+        + test_logger_instancia()
+        + test_config_instancia()
+    }
+
+    class TestFactory {
+        + test_creacion_repositorio()
+    }
+
+    class TestUIFactory {
+        + test_familia_tkinter()
+        + test_familia_pyqt5()
+        + test_fabrica_con_mock()
+    }
+
+    class MockFactory <<Mock>>
+}
+
+TestSingleton ..> Logger : verifica
+TestSingleton ..> Config : verifica
+
+TestFactory ..> CreadorRepositorio : prueba
+
+TestUIFactory ..> UIFactory : verifica
+TestUIFactory ..> MockFactory : utiliza
+
+' =====================================================
+' 7. EXPLICACION DE LOS PATRONES
+' =====================================================
+
+note bottom of Logger
+  SINGLETON
+
+  Garantiza una sola instancia
+  para registrar mensajes.
+end note
+
+note bottom of CreadorRepositorio
+  FACTORY METHOD
+
+  Delega la creacion de
+  repositorios concretos.
+end note
+
+note bottom of UIFactory
+  ABSTRACT FACTORY
+
+  Crea familias compatibles
+  de componentes graficos.
+end note
+
+note bottom of TestUIFactory
+  PRUEBAS
+
+  Verifica las fabricas
+  utilizando mocks.
+end note
+
+@enduml

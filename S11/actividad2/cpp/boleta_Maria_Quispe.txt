@@ -1,0 +1,7 @@
+BOLETA DE NOTAS
+Estudiante: Maria Quispe
+-----------------------------
+Programacion II: 17.00
+Base de Datos: 15.00
+Matematica: 15.25
+Promedio: 15.75

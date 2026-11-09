@@ -1,0 +1,25 @@
+
+{
+    "estudiante": "Maria Quispe",
+    "promedio": 15.75,
+    "nombre_base": "boleta_Maria_Quispe",
+    "notas": [
+        {
+            "asignatura": "Programacion II",
+            "valor": 17.0
+        },
+        {
+            "asignatura": "Base de Datos",
+            "valor": 15.0
+        },
+        {
+            "asignatura": "Matematica",
+            "valor": 15.25
+        }
+    ],
+    "formatos": [
+        "txt",
+        "csv",
+        "html"
+    ]
+}
