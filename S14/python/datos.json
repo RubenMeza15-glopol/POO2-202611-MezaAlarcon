@@ -1,0 +1,52 @@
+[
+    {
+        "codigo": 1001,
+        "nombre": "Ana Quispe",
+        "ppa": 15.666666666666666,
+        "notas": [
+            14.0,
+            18.0,
+            15.0
+        ]
+    },
+    {
+        "codigo": 1002,
+        "nombre": "Juan Mamani",
+        "ppa": 16.0,
+        "notas": [
+            15.0,
+            17.0,
+            16.0
+        ]
+    },
+    {
+        "codigo": 1003,
+        "nombre": "Rosa Flores Marron",
+        "ppa": 17.0,
+        "notas": [
+            16.0,
+            18.0,
+            17.0
+        ]
+    },
+    {
+        "codigo": 1004,
+        "nombre": "Carlos Melendes",
+        "ppa": 16.0,
+        "notas": [
+            16.0,
+            14.0,
+            18.0
+        ]
+    },
+    {
+        "codigo": 1005,
+        "nombre": "Hilda Casso",
+        "ppa": 16.0,
+        "notas": [
+            16.0,
+            16.0,
+            16.0
+        ]
+    }
+]
