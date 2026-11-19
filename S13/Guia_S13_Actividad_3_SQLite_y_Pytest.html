@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actividad 3 - SQLite y prueba de sustitución | SIS206 POO II</title>
+<style>
+:root{--azul:#174a78;--azul2:#eaf3fb;--verde:#28613b;--texto:#202833;--gris:#64748b;--borde:#d6dee8;--fondo:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.65 "Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(120deg,#123b63,#24618e);color:white;padding:42px 7%;}header h1{margin:0;font-size:2rem}header p{margin:8px 0 0;color:#e5eef7}
+main{max-width:1100px;margin:28px auto;padding:0 20px}
+nav,.panel,section{background:white;border:1px solid var(--borde);border-radius:12px;padding:22px;margin:18px 0;box-shadow:0 3px 12px #18324a0a}
+nav a{display:inline-block;margin:5px 14px 5px 0;color:var(--azul);font-weight:600}
+h2{color:var(--azul);border-bottom:2px solid var(--borde);padding-bottom:8px}
+h3{color:var(--verde);margin-top:28px}h4{margin-bottom:6px;color:#334155}
+p{margin:9px 0}.tag{display:inline-block;background:var(--azul2);color:var(--azul);padding:3px 10px;border-radius:20px;font-size:.85rem;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#f3f4f6;padding:18px;border-radius:9px;font:13px/1.55 Consolas,"Courier New",monospace;border:1px solid #273449}
+code{font-family:Consolas,monospace;background:#eef2f7;padding:2px 5px;border-radius:4px}
+pre code{background:none;padding:0}
+.note{background:#fff8e7;border-left:4px solid #d59b24;padding:12px 16px;border-radius:5px}
+.good{background:#edf8f0;border-left:4px solid #39834f;padding:12px 16px;border-radius:5px}
+table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--borde);padding:9px;text-align:left}th{background:var(--azul2)}
+li{margin:5px 0}.qa{padding:12px 0;border-bottom:1px solid var(--borde)}
+footer{text-align:center;color:var(--gris);padding:28px}
+@media(max-width:650px){header{padding:28px 20px}header h1{font-size:1.55rem}nav,.panel,section{padding:16px}pre{font-size:12px}}
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">SIS206 · POO II · Python 3.12 · Semana 13</span>
+  <h1>Actividad 3 - SQLite y prueba de sustitución</h1>
+  <p>Comprende la base de datos SQLite y la prueba parametrizada que verifica el servicio con distintos repositorios.</p>
+</header>
+<main>
+<nav><a href="#inicio">Inicio de la actividad</a></nav>
+<div id="inicio" class="panel">
+  <p><strong>Cómo estudiar:</strong> primero lee qué problema resuelve la actividad, después sigue el código comentado línea por línea y finalmente revisa el resultado esperado y las preguntas de sustentación.</p>
+</div>
+<section id="a3">
+<h2>4. Actividad 3 — RepositorioSQLite y prueba de sustitución</h2>
+<p><span class="tag">30 minutos</span></p>
+<h3>¿Qué hace SQLite?</h3>
+<p>SQLite es una base de datos ligera que se guarda en un archivo, por ejemplo <code>estudiantes.db</code>. A diferencia de JSON y CSV, almacena los datos en una tabla y permite consultarlos con SQL. Python incluye el módulo <code>sqlite3</code>, por lo que no hace falta instalar un servidor de base de datos.</p>
+<h3>Archivo: <code>repositorio_sqlite.py</code> — código comentado</h3>
+<pre><code>import sqlite3                       # Permite conectarse y ejecutar sentencias SQL en SQLite.
+import json                          # Convierte la lista de notas a texto y de vuelta.
+from typing import Optional          # Permite indicar que buscar puede devolver None.
+from estudiante import Estudiante    # Importa el modelo Estudiante.
+
+CREATE_SQL = (                        # Define la sentencia SQL para crear la tabla.
+    "CREATE TABLE IF NOT EXISTS estudiante(" # Crea la tabla solo si todavía no existe.
+    " codigo INTEGER PRIMARY KEY,"    # Código entero que identifica de forma única al estudiante.
+    " nombre TEXT NOT NULL,"          # Nombre obligatorio almacenado como texto.
+    " ppa REAL NOT NULL DEFAULT 0,"   # PPA decimal obligatorio, con valor inicial 0.
+    " notas TEXT NOT NULL DEFAULT '[]')" # Notas almacenadas como texto; por defecto lista vacía.
+)                                     # Termina la definición de la sentencia SQL.
+
+class RepositorioSQLite:              # Declara el repositorio basado en SQLite.
+
+    def __init__(self, ruta: str) -> None: # Constructor: recibe el archivo de base de datos.
+        self._con = sqlite3.connect(ruta, # Abre o crea la base de datos indicada.
+                                    check_same_thread=False) # Permite usar la conexión desde otros hilos.
+        self._con.execute(CREATE_SQL) # Crea la tabla si aún no existe.
+        self._con.commit()            # Confirma los cambios de creación de la tabla.
+
+    def guardar(self, e: Estudiante) -> None: # Inserta o reemplaza un estudiante.
+        self._con.execute(            # Ejecuta una sentencia SQL parametrizada.
+            "INSERT OR REPLACE INTO " # Inserta; si la clave ya existe, reemplaza el registro.
+            "estudiante VALUES(?,?,?,?)", # Los cuatro signos ? reciben valores seguros.
+            (e.codigo, e.nombre, e.ppa, # Envía código, nombre y PPA como parámetros.
+             json.dumps(e.notas)))     # Convierte las notas a texto JSON para guardarlas.
+        self._con.commit()             # Confirma la escritura en la base de datos.
+
+    def buscar(self, cod: int) -> Optional[Estudiante]: # Busca por código.
+        row = self._con.execute(       # Ejecuta una consulta SQL.
+            "SELECT * FROM estudiante " # Solicita todas las columnas de la tabla.
+            "WHERE codigo=?", (cod,)).fetchone() # Filtra por código y obtiene una fila o None.
+        if row is None:                # Comprueba si la consulta no encontró registros.
+            return None                # Informa que no existe ese estudiante.
+        return Estudiante(             # Reconstruye un objeto Estudiante desde la fila.
+            row[0], row[1], row[2],    # Recupera código, nombre y PPA.
+            json.loads(row[3]))        # Convierte la columna de notas en una lista.
+
+    def listar(self) -> list[Estudiante]: # Recupera todos los estudiantes.
+        rows = self._con.execute(      # Ejecuta la consulta para obtener todos los registros.
+            "SELECT * FROM estudiante").fetchall() # Recupera todas las filas.
+        return [Estudiante(r[0], r[1], r[2], # Crea un estudiante por cada fila.
+                    json.loads(r[3])) for r in rows] # Reconstruye las notas y devuelve la lista.</code></pre>
+
+<h3>Palabras SQL que debes reconocer</h3>
+<table><tr><th>Instrucción</th><th>Qué significa aquí</th></tr>
+<tr><td><code>CREATE TABLE</code></td><td>Crea la tabla de estudiantes.</td></tr>
+<tr><td><code>INSERT OR REPLACE</code></td><td>Inserta un registro o reemplaza el que tenga el mismo código.</td></tr>
+<tr><td><code>SELECT</code></td><td>Consulta registros.</td></tr>
+<tr><td><code>WHERE codigo=?</code></td><td>Filtra por el código recibido como parámetro.</td></tr>
+<tr><td><code>commit()</code></td><td>Confirma la transacción para que el cambio quede guardado.</td></tr></table>
+
+<h3>¿Qué es la prueba de sustitución?</h3>
+<p>La guía la relaciona con el principio de sustitución de Liskov (LSP). En términos sencillos: si el servicio trabaja con un repositorio que ofrece las operaciones esperadas, podemos cambiar el repositorio concreto por otro sin tener que reescribir la lógica del servicio.</p>
+<p>En esta prueba se utiliza el mismo <code>ServicioEstudiante</code> con cuatro repositorios: memoria, JSON, CSV y SQLite. Se verifica que todos puedan registrar dos estudiantes, buscarlos y listarlos.</p>
+
+<h3>Archivo: <code>test_repos.py</code> — prueba comentada</h3>
+<pre><code>import pytest                         # Importa pytest para parametrizar y ejecutar pruebas.
+import os                             # Permite comprobar y borrar archivos temporales.
+from servicios import ServicioEstudiante # Importa el servicio que usa el repositorio.
+from estrategias import PromedioSimple # Importa la estrategia de cálculo del promedio.
+from estudiante import Estudiante     # Importa el modelo de estudiante.
+from repositorios import (            # Importa las implementaciones de repositorio.
+    RepositorioMemoria,               # Repositorio que conserva datos solo en memoria.
+    RepositorioJSON,                  # Repositorio que almacena datos en JSON.
+    RepositorioCSV,                   # Repositorio que almacena datos en CSV.
+    RepositorioSQLite                 # Repositorio que almacena datos en SQLite.
+)                                     # Termina la lista de importaciones.
+
+@pytest.mark.parametrize("RepoClass,kwargs,cleanup", [ # Ejecuta la misma prueba con distintos repositorios.
+    (RepositorioMemoria, {}, None),   # Caso 1: memoria; no necesita ruta ni limpieza de archivo.
+    (RepositorioJSON, {"ruta": "/tmp/t.json"}, "/tmp/t.json"), # Caso 2: JSON y su archivo temporal.
+    (RepositorioCSV, {"ruta": "/tmp/t.csv"}, "/tmp/t.csv"), # Caso 3: CSV y su archivo temporal.
+    (RepositorioSQLite, {"ruta": "/tmp/t.db"}, "/tmp/t.db"), # Caso 4: SQLite y su archivo temporal.
+])                                    # Termina los cuatro casos de prueba.
+
+def test_servicio_con_cualquier_repo(RepoClass, kwargs, cleanup): # Prueba común para cada backend.
+    repo = RepoClass(**kwargs)        # Crea el repositorio de la vuelta actual.
+    svc = ServicioEstudiante(repo, PromedioSimple()) # Inyecta repositorio y estrategia en el servicio.
+    e1 = Estudiante(1001, "Ana", 0.0, [15.0, 18.0, 14.0]) # Prepara a Ana con sus notas.
+    e2 = Estudiante(1002, "Juan", 0.0, [10.0, 12.0, 14.0]) # Prepara a Juan con sus notas.
+    svc.registrar(e1)                 # El servicio calcula el PPA y guarda a Ana.
+    svc.registrar(e2)                 # El servicio calcula el PPA y guarda a Juan.
+    assert svc.buscar(1001).nombre == "Ana" # Verifica que puede recuperar a Ana.
+    assert svc.buscar(1002) is not None # Verifica que puede recuperar a Juan.
+    assert len(repo.listar()) == 2    # Comprueba que hay dos estudiantes.
+    if cleanup and os.path.exists(cleanup): # Si hay archivo temporal y existe...
+        os.remove(cleanup)            # ...lo elimina para que la prueba no deje residuos.</code></pre>
+
+<div class="note"><strong>Detalle de la guía:</strong> el fragmento importa las cuatro clases desde <code>repositorios</code>. Ese módulo debe exponer esas clases. La guía no desarrolla en estas páginas el contenido completo de <code>repositorios.py</code>, ni las implementaciones completas de <code>RepositorioMemoria</code>, <code>ServicioEstudiante</code> o <code>PromedioSimple</code>; aquí se explica cómo intervienen en la prueba, sin inventar sus líneas internas.</div>
+
+<h3>¿Qué significa pytest.mark.parametrize?</h3>
+<p>Permite ejecutar una misma función de prueba varias veces, cambiando los datos de entrada. En este caso cambia <code>RepoClass</code> y crea cada backend. Así comprobamos que el servicio se comporta igual con las cuatro implementaciones.</p>
+<div class="good"><strong>Resultado esperado según la guía:</strong> ejecutar <code>pytest test_repos.py -v</code> y obtener <strong>4 tests PASSED</strong>. Cada caso representa una implementación de repositorio.</div>
+<h3>La pregunta clave de la guía: ¿ServicioEstudiante cambió alguna línea?</h3>
+<p><strong>No debería cambiar.</strong> El servicio recibe el repositorio desde fuera (inyección de dependencias) y utiliza sus operaciones comunes. Por eso se puede sustituir el almacenamiento sin modificar la lógica de negocio del servicio.</p>
+</section>
+
+<section id="defensa">
+<h2>5. Cómo explicarlo en la sustentación</h2>
+<h3>Resumen breve para decir frente al ingeniero</h3>
+<p>“En la Semana 13 trabajamos persistencia multicapa usando el patrón Repository. Primero implementamos un repositorio JSON y comprobamos que los datos se recuperan al crear una segunda instancia. Después implementamos un repositorio CSV para guardar los estudiantes en filas y columnas. Finalmente usamos SQLite, que almacena los estudiantes en una tabla, y aplicamos una prueba parametrizada con pytest para verificar que el mismo ServicioEstudiante funciona con cuatro repositorios distintos sin cambiar su código.”</p>
+
+<h3>Preguntas que podrían hacerte</h3>
+<div class="qa"><strong>1. ¿Qué es persistencia?</strong><p>Es conservar los datos fuera de la memoria del programa para recuperarlos después de cerrarlo o reiniciarlo.</p></div>
+<div class="qa"><strong>2. ¿Qué diferencia hay entre JSON, CSV y SQLite?</strong><p>JSON guarda datos estructurados; CSV los organiza en filas y columnas; SQLite los guarda en tablas de una base de datos y permite consultarlos con SQL.</p></div>
+<div class="qa"><strong>3. ¿Por qué el constructor llama a _cargar()?</strong><p>Para recuperar automáticamente los datos que ya estaban guardados cuando se crea el repositorio.</p></div>
+<div class="qa"><strong>4. ¿Para qué sirve _persistir()?</strong><p>Para escribir en el archivo el estado actual del repositorio. Se llama después de guardar o eliminar.</p></div>
+<div class="qa"><strong>5. ¿Qué hace assert?</strong><p>Comprueba una condición. Si la condición es falsa, la prueba falla.</p></div>
+<div class="qa"><strong>6. ¿Qué demuestra crear r1 y luego r2?</strong><p>Que los datos no dependen únicamente del diccionario de la primera instancia: se escribieron en el archivo y la segunda instancia pudo recuperarlos.</p></div>
+<div class="qa"><strong>7. ¿Qué es LSP en esta actividad?</strong><p>Es el principio de sustitución de Liskov: una implementación concreta puede reemplazar a otra cuando respeta el comportamiento esperado por el código que la utiliza.</p></div>
+<div class="qa"><strong>8. ¿Por qué ServicioEstudiante no cambia?</strong><p>Porque depende de las operaciones que ofrece el repositorio y no de cómo se guardan internamente los datos.</p></div>
+<div class="qa"><strong>9. ¿Qué significa 4 tests PASSED?</strong><p>Que pytest ejecutó satisfactoriamente el mismo escenario con los cuatro repositorios parametrizados.</p></div>
+
+<h3>Comandos de ejecución orientativos en PowerShell</h3>
+<p>Desde la carpeta de la actividad de Semana 13, donde están los archivos Python:</p>
+<pre><code>python --version                 # Comprueba que Python esté instalado.
+python test_json_persistencia.py # Ejecuta la prueba JSON si el archivo llama a la función directamente.
+pytest test_repos.py -v          # Ejecuta los cuatro casos parametrizados de sustitución.</code></pre>
+<p>Para la prueba de CSV, ejecuta el archivo principal o de prueba que hayas creado para registrar estudiantes, y luego abre el CSV generado en VS Code o LibreOffice Calc.</p>
+
+<h3>Comparación final: ventajas y límites</h3>
+<table><tr><th>Backend</th><th>Ventaja</th><th>Límite práctico</th></tr>
+<tr><td>JSON</td><td>Fácil de leer y transportar.</td><td>Para cambios suele reescribirse el archivo completo; no es ideal para consultas complejas.</td></tr>
+<tr><td>CSV</td><td>Muy sencillo de abrir y revisar en hojas de cálculo.</td><td>Su estructura tabular es limitada para relaciones y consultas complejas.</td></tr>
+<tr><td>SQLite</td><td>Consultas SQL, tabla estructurada y base de datos en un archivo.</td><td>Requiere conocer SQL y gestionar conexiones/transacciones.</td></tr></table>
+
+<div class="good"><strong>Idea que debes recordar:</strong> los tres repositorios almacenan de forma distinta, pero el servicio puede trabajar con ellos de la misma manera. Esa es la razón de hacer la prueba de sustitución.</div>
+</section>
+<footer>SIS206 — Programación Orientada a Objetos II · Semana 13</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actividad 2 - RepositorioCSV | SIS206 POO II</title>
+<style>
+:root{--azul:#174a78;--azul2:#eaf3fb;--verde:#28613b;--texto:#202833;--gris:#64748b;--borde:#d6dee8;--fondo:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.65 "Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(120deg,#123b63,#24618e);color:white;padding:42px 7%;}header h1{margin:0;font-size:2rem}header p{margin:8px 0 0;color:#e5eef7}
+main{max-width:1100px;margin:28px auto;padding:0 20px}
+nav,.panel,section{background:white;border:1px solid var(--borde);border-radius:12px;padding:22px;margin:18px 0;box-shadow:0 3px 12px #18324a0a}
+nav a{display:inline-block;margin:5px 14px 5px 0;color:var(--azul);font-weight:600}
+h2{color:var(--azul);border-bottom:2px solid var(--borde);padding-bottom:8px}
+h3{color:var(--verde);margin-top:28px}h4{margin-bottom:6px;color:#334155}
+p{margin:9px 0}.tag{display:inline-block;background:var(--azul2);color:var(--azul);padding:3px 10px;border-radius:20px;font-size:.85rem;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#f3f4f6;padding:18px;border-radius:9px;font:13px/1.55 Consolas,"Courier New",monospace;border:1px solid #273449}
+code{font-family:Consolas,monospace;background:#eef2f7;padding:2px 5px;border-radius:4px}
+pre code{background:none;padding:0}
+.note{background:#fff8e7;border-left:4px solid #d59b24;padding:12px 16px;border-radius:5px}
+.good{background:#edf8f0;border-left:4px solid #39834f;padding:12px 16px;border-radius:5px}
+table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--borde);padding:9px;text-align:left}th{background:var(--azul2)}
+li{margin:5px 0}.qa{padding:12px 0;border-bottom:1px solid var(--borde)}
+footer{text-align:center;color:var(--gris);padding:28px}
+@media(max-width:650px){header{padding:28px 20px}header h1{font-size:1.55rem}nav,.panel,section{padding:16px}pre{font-size:12px}}
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">SIS206 · POO II · Python 3.12 · Semana 13</span>
+  <h1>Actividad 2 - RepositorioCSV</h1>
+  <p>Comprende cómo se guardan estudiantes en filas y columnas CSV, cómo se leen y cómo inspeccionar el archivo.</p>
+</header>
+<main>
+<nav><a href="#inicio">Inicio de la actividad</a></nav>
+<div id="inicio" class="panel">
+  <p><strong>Cómo estudiar:</strong> primero lee qué problema resuelve la actividad, después sigue el código comentado línea por línea y finalmente revisa el resultado esperado y las preguntas de sustentación.</p>
+</div>
+<section id="a2">
+<h2>3. Actividad 2 — RepositorioCSV</h2>
+<p><span class="tag">20 minutos</span></p>
+<h3>¿Qué hace?</h3>
+<p>Guarda los estudiantes en un archivo CSV. CSV es un formato de texto organizado en filas y columnas, que puede abrirse con VS Code o LibreOffice Calc. Como las notas son una lista, el código usa JSON para convertir esa lista en texto dentro de una celda.</p>
+<h3>Archivo: <code>repositorio_csv.py</code> — código comentado</h3>
+<pre><code>import csv                           # Proporciona lectores y escritores de archivos CSV.
+import pathlib                       # Permite manejar la ruta del archivo.
+from typing import Optional          # Indica que buscar puede devolver un estudiante o None.
+from estudiante import Estudiante    # Importa la clase del modelo.
+
+CAMPOS = ["codigo", "nombre", "ppa", "notas"] # Define los nombres y el orden de las columnas.
+
+class RepositorioCSV:                 # Declara el repositorio que utiliza un archivo CSV.
+
+    def __init__(self, ruta: str) -> None: # Constructor que recibe la ruta del CSV.
+        self._ruta = pathlib.Path(ruta)    # Guarda la ruta como objeto Path.
+        self._datos: dict[int, Estudiante] = {} # Crea el diccionario interno de estudiantes.
+        self._cargar()                     # Lee los datos existentes al iniciar.
+
+    def _cargar(self) -> None:         # Lee los registros del archivo CSV.
+        if not self._ruta.exists():    # Verifica si el archivo existe.
+            return                    # Si no existe, termina con el diccionario vacío.
+        with self._ruta.open(newline="", encoding="utf-8") as f: # Abre el CSV para lectura.
+            for row in csv.DictReader(f): # Lee cada fila como diccionario usando los encabezados.
+                import json           # Importa JSON para reconstruir la lista de notas.
+                e = Estudiante(       # Crea un objeto Estudiante con los datos de la fila.
+                    int(row["codigo"]), # Convierte el código de texto a entero.
+                    row["nombre"],    # Recupera el nombre como texto.
+                    float(row["ppa"]), # Convierte el PPA de texto a número decimal.
+                    json.loads(row["notas"])) # Convierte el texto JSON de notas en una lista.
+                self._datos[e.codigo] = e # Guarda el estudiante en el diccionario por código.
+
+    def _persistir(self) -> None:      # Escribe el contenido actual del diccionario al CSV.
+        import json                    # Permite convertir la lista de notas a texto JSON.
+        with self._ruta.open("w", newline="", encoding="utf-8") as f: # Abre el CSV para escritura.
+            w = csv.DictWriter(f, fieldnames=CAMPOS) # Crea el escritor con las columnas definidas.
+            w.writeheader()             # Escribe la primera fila con los nombres de columnas.
+            for e in self._datos.values(): # Recorre todos los estudiantes almacenados.
+                w.writerow({"codigo": e.codigo, # Escribe el código en su columna.
+                    "nombre": e.nombre,  # Escribe el nombre.
+                    "ppa": e.ppa,        # Escribe el promedio.
+                    "notas": json.dumps(e.notas)}) # Guarda la lista de notas como texto JSON.
+
+    def guardar(self, e: Estudiante) -> None: # Guarda o reemplaza un estudiante.
+        self._datos[e.codigo] = e     # Actualiza el diccionario usando el código.
+        self._persistir()             # Actualiza el archivo CSV.
+
+    def buscar(self, cod: int) -> Optional[Estudiante]: # Busca un estudiante por código.
+        return self._datos.get(cod)   # Devuelve el objeto o None si no existe.
+
+    def listar(self) -> list[Estudiante]: # Devuelve todos los estudiantes.
+        return list(self._datos.values()) # Retorna una lista con los objetos almacenados.</code></pre>
+<h3>¿Cómo se ve el archivo?</h3>
+<pre><code>codigo,nombre,ppa,notas
+1001,Ana Quispe,15.5,"[14.0, 18.0, 14.5]"
+1002,Juan Mamani,12.0,"[10.0, 12.0, 14.0]"</code></pre>
+<p>La primera fila es el encabezado. Cada fila siguiente representa un estudiante. Observa que <code>codigo</code> y <code>ppa</code> se leen inicialmente como texto desde CSV y por eso se convierten con <code>int()</code> y <code>float()</code>. Las notas se reconstruyen con <code>json.loads()</code>.</p>
+<h3>Práctica solicitada por la guía</h3>
+<ul>
+<li>Copiar <code>repositorio_csv.py</code> dentro de <code>s13/python/</code>.</li>
+<li>Registrar tres estudiantes y abrir el CSV en VS Code o LibreOffice Calc.</li>
+<li>Verificar que el encabezado sea <code>codigo,nombre,ppa,notas</code>.</li>
+<li>Agregar manualmente una fila válida al CSV y crear una nueva instancia del repositorio para comprobar que la carga.</li>
+</ul>
+<div class="note"><strong>Ojo:</strong> en el fragmento de la guía, RepositorioCSV incluye <code>guardar</code>, <code>buscar</code> y <code>listar</code>. No muestra un método <code>eliminar</code>; no afirmes que esa versión lo implementa si tu archivo no lo tiene.</div>
+</section>
+<footer>SIS206 — Programación Orientada a Objetos II · Semana 13</footer>
+</main>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actividad 1 - RepositorioJSON | SIS206 POO II</title>
+<style>
+:root{--azul:#174a78;--azul2:#eaf3fb;--verde:#28613b;--texto:#202833;--gris:#64748b;--borde:#d6dee8;--fondo:#f4f7fb}
+*{box-sizing:border-box}body{margin:0;background:var(--fondo);color:var(--texto);font:16px/1.65 "Segoe UI",Arial,sans-serif}
+header{background:linear-gradient(120deg,#123b63,#24618e);color:white;padding:42px 7%;}header h1{margin:0;font-size:2rem}header p{margin:8px 0 0;color:#e5eef7}
+main{max-width:1100px;margin:28px auto;padding:0 20px}
+nav,.panel,section{background:white;border:1px solid var(--borde);border-radius:12px;padding:22px;margin:18px 0;box-shadow:0 3px 12px #18324a0a}
+nav a{display:inline-block;margin:5px 14px 5px 0;color:var(--azul);font-weight:600}
+h2{color:var(--azul);border-bottom:2px solid var(--borde);padding-bottom:8px}
+h3{color:var(--verde);margin-top:28px}h4{margin-bottom:6px;color:#334155}
+p{margin:9px 0}.tag{display:inline-block;background:var(--azul2);color:var(--azul);padding:3px 10px;border-radius:20px;font-size:.85rem;font-weight:700}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#111827;color:#f3f4f6;padding:18px;border-radius:9px;font:13px/1.55 Consolas,"Courier New",monospace;border:1px solid #273449}
+code{font-family:Consolas,monospace;background:#eef2f7;padding:2px 5px;border-radius:4px}
+pre code{background:none;padding:0}
+.note{background:#fff8e7;border-left:4px solid #d59b24;padding:12px 16px;border-radius:5px}
+.good{background:#edf8f0;border-left:4px solid #39834f;padding:12px 16px;border-radius:5px}
+table{border-collapse:collapse;width:100%;margin:12px 0}td,th{border:1px solid var(--borde);padding:9px;text-align:left}th{background:var(--azul2)}
+li{margin:5px 0}.qa{padding:12px 0;border-bottom:1px solid var(--borde)}
+footer{text-align:center;color:var(--gris);padding:28px}
+@media(max-width:650px){header{padding:28px 20px}header h1{font-size:1.55rem}nav,.panel,section{padding:16px}pre{font-size:12px}}
+</style>
+</head>
+<body>
+<header>
+  <span class="tag">SIS206 · POO II · Python 3.12 · Semana 13</span>
+  <h1>Actividad 1 - RepositorioJSON</h1>
+  <p>Comprende cómo se guardan estudiantes en un archivo JSON y cómo se comprueba que los datos sobreviven al crear otra instancia.</p>
+</header>
+<main>
+<nav><a href="#inicio">Inicio de la actividad</a></nav>
+<div id="inicio" class="panel">
+  <p><strong>Cómo estudiar:</strong> primero lee qué problema resuelve la actividad, después sigue el código comentado línea por línea y finalmente revisa el resultado esperado y las preguntas de sustentación.</p>
+</div>
+<section id="a1">
+<h2>2. Actividad 1 — RepositorioJSON</h2>
+<p><span class="tag">30 minutos</span></p>
+<h3>¿Qué hace?</h3>
+<p>Implementa un repositorio que guarda estudiantes en un archivo JSON. Al crearse, intenta leer el archivo existente. Cuando guardamos o eliminamos un estudiante, actualiza el archivo para que el cambio permanezca.</p>
+<h3>Archivo: <code>repositorio_json.py</code> — código comentado línea por línea</h3>
+<pre><code>import json                         # Permite convertir datos Python a JSON y viceversa.
+import pathlib                      # Facilita trabajar con rutas y archivos.
+from dataclasses import asdict      # Convierte un objeto dataclass en un diccionario.
+from dataclasses import fields      # Importado en la guía; en este código no se utiliza.
+from typing import Optional         # Permite indicar que una búsqueda puede devolver None.
+from estudiante import Estudiante   # Importa el modelo Estudiante del proyecto.
+
+class RepositorioJSON:              # Declara el repositorio que almacena estudiantes en JSON.
+
+    def __init__(self, ruta: str) -> None:  # Constructor: recibe la ubicación del archivo.
+        self._ruta = pathlib.Path(ruta)    # Convierte la ruta de texto en un objeto Path.
+        self._datos: dict[int, Estudiante] = {}  # Crea un diccionario: código -> estudiante.
+        self._cargar()                     # Recupera los datos guardados al iniciar.
+
+    def _cargar(self) -> None:       # Método interno que lee el archivo JSON.
+        if not self._ruta.exists():  # Comprueba si el archivo ya existe.
+            return                  # Si no existe, termina; el repositorio queda vacío.
+        with self._ruta.open(encoding="utf-8") as f:  # Abre el archivo para lectura.
+            for item in json.load(f): # Lee el JSON y recorre cada estudiante convertido en diccionario.
+                e = Estudiante(**item) # Crea un Estudiante usando las claves del diccionario.
+                self._datos[e.codigo] = e # Guarda el objeto en memoria usando su código como clave.
+
+    def _persistir(self) -> None:    # Método interno que escribe los datos en el archivo.
+        lista = [asdict(e) for e in self._datos.values()] # Convierte cada estudiante en diccionario.
+        with self._ruta.open("w", encoding="utf-8") as f: # Abre el archivo en modo escritura.
+            json.dump(lista, f, indent=2, # Escribe la lista en formato JSON legible.
+                      ensure_ascii=False) # Conserva correctamente tildes y caracteres españoles.
+
+    def guardar(self, e: Estudiante) -> None: # Inserta o reemplaza un estudiante.
+        self._datos[e.codigo] = e    # Coloca el estudiante en el diccionario por su código.
+        self._persistir()            # Guarda inmediatamente el estado actualizado en JSON.
+
+    def buscar(self, cod: int) -> Optional[Estudiante]: # Busca por código.
+        return self._datos.get(cod)  # Devuelve el estudiante o None si no existe.
+
+    def listar(self) -> list[Estudiante]: # Devuelve todos los estudiantes.
+        return list(self._datos.values()) # Convierte los valores del diccionario en una lista.
+
+    def eliminar(self, cod: int) -> None: # Elimina al estudiante cuyo código se recibe.
+        self._datos.pop(cod, None)   # Elimina la clave; si no existe, no produce error.
+        self._persistir()            # Reescribe el JSON sin el estudiante eliminado.</code></pre>
+
+<h3>Cómo entender el recorrido</h3>
+<ol>
+<li>Se crea <code>RepositorioJSON("estudiantes.json")</code>.</li>
+<li>El constructor prepara el diccionario y llama a <code>_cargar()</code>.</li>
+<li>Si el archivo existe, sus registros se convierten nuevamente en objetos <code>Estudiante</code>.</li>
+<li>Al llamar a <code>guardar()</code>, el estudiante se añade al diccionario y se ejecuta <code>_persistir()</code>.</li>
+<li>Al crear otra instancia apuntando al mismo archivo, se vuelven a cargar los datos. Eso demuestra la persistencia.</li>
+</ol>
+
+<h3>Archivo: <code>test_json_persistencia.py</code> — prueba comentada</h3>
+<pre><code>import os                              # Permite eliminar el archivo temporal al terminar.
+import pathlib                         # Se importa en la guía; no se usa en esta prueba.
+from repositorio_json import RepositorioJSON # Importa el repositorio JSON.
+from estudiante import Estudiante     # Importa el modelo de estudiante.
+
+RUTA = "/tmp/estudiantes_test.json"   # Define el archivo temporal usado por la prueba.
+
+def test_persistencia_entre_instancias(): # Define la prueba de persistencia.
+    # Primera instancia: guardar estudiantes.
+    r1 = RepositorioJSON(RUTA)        # Crea el primer repositorio y carga el archivo si existe.
+    r1.guardar(Estudiante(1001, "Ana Quispe", 15.5, [14.0, 18.0, 14.5])) # Guarda a Ana.
+    r1.guardar(Estudiante(1002, "Juan Mamani", 12.0, [10.0, 12.0, 14.0])) # Guarda a Juan.
+
+    # Segunda instancia: comprobar que los datos quedaron en el archivo.
+    r2 = RepositorioJSON(RUTA)        # Crea otro repositorio leyendo el mismo archivo.
+    ana = r2.buscar(1001)             # Busca a Ana desde la segunda instancia.
+    assert ana is not None            # Falla si Ana no fue recuperada.
+    assert ana.nombre == "Ana Quispe" # Comprueba que el nombre sea correcto.
+    assert abs(ana.ppa - 15.5) < 0.01 # Comprueba el PPA con una pequeña tolerancia.
+
+    juan = r2.buscar(1002)            # Busca a Juan desde la segunda instancia.
+    assert juan is not None            # Comprueba que Juan también se recuperó.
+    assert len(r2.listar()) == 2      # Comprueba que hay exactamente dos estudiantes.
+
+    os.remove(RUTA)                   # Elimina el archivo temporal para limpiar la prueba.
+
+test_persistencia_entre_instancias()  # Ejecuta la función de prueba directamente.
+print("RepositorioJSON: persistencia verificada ✓") # Muestra el mensaje si no hubo fallos.</code></pre>
+<div class="good"><strong>Resultado esperado:</strong> <code>RepositorioJSON: persistencia verificada ✓</code>. La segunda instancia encontró a Ana y Juan y verificó que había dos registros. Si un <code>assert</code> falla, Python detiene la prueba con un error.</div>
+
+<h3>¿Qué demuestra el adicional eliminar(cod)?</h3>
+<p>Que no basta con borrar el registro del diccionario temporal: también se debe llamar a <code>_persistir()</code>. De esa manera, el archivo JSON queda actualizado y el estudiante no reaparece al reiniciar.</p>
+</section>
+<footer>SIS206 — Programación Orientada a Objetos II · Semana 13</footer>
+</main>
+</body>
+</html>
